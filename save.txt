@@ -1,0 +1,129 @@
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+export default function App(){
+
+  return (
+    <View style={style.BAckWeb}>
+    <View style={style.MainContainer}> 
+
+      <View style={style.TitleContainer}>
+        <Text style={style.Title}>Login to your{"\n"}account.</Text>
+      </View>
+
+      <View>
+        <Text style={style.SubTitle}>Hello, welcome back to your account</Text>
+      </View>
+
+      <View style={style.InputContainer}>
+        <TextInput style={style.Input} placeholder='Email'/>
+        <TextInput style={style.Input} placeholder='Password' secureTextEntry={true}/>
+      </View>
+
+      <View style={style.Press}>
+        <Text style={style.Presstext}>Remember Me</Text>
+        <Text style={style.Presstext}>Forgot Password?</Text>
+      </View>
+
+      <View>
+        <TouchableOpacity style={style.Button}>
+          <Text style={style.ButtonText}>Login</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View>
+        <Text>or sign up with</Text>
+      </View>
+
+      <View style={style.links}>
+        <Text>Facebook</Text>
+        <Text>Google</Text>
+        <Text>Apple</Text>
+      </View>
+
+    </View>
+
+    </View>
+
+  );
+}
+
+const style = StyleSheet.create ({
+
+    BAckWeb: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      flex: 1,
+    },
+
+
+    MainContainer: {
+      backgroundColor: 'white',
+      height: 600,
+      width: 320,
+      borderRadius: 15, 
+      alignItems: 'center',
+    },
+
+    TitleContainer: {
+      marginTop: 50,
+      marginBottom: 30,
+    },
+
+    Title: {
+      fontSize: 40,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
+
+    SubTitle: {
+      color: 'grey',
+    },
+
+    InputContainer: {
+      marginTop: 40,
+    },
+
+    Input: {
+      color: 'grey',
+      width: 280,
+      height: 50,
+      borderWidth: 1,
+      borderRadius: 8,
+      marginBottom: 10,
+      fontSize: 12,
+      paddingHorizontal: 15,
+    },
+
+    Press: {
+      width: 280,
+      flexDirection: 'row',
+       justifyContent: 'space-between',
+    },
+
+    Presstext: {
+      color: 'grey',
+    },
+
+    Button: {
+      width: 280,
+      height: 50,
+      backgroundColor: 'blue',
+      borderRadius: 10,
+      marginTop: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 50,
+    },
+
+    ButtonText: {
+      fontSize: 15,
+      color: 'white',
+    },
+
+    links: {
+      marginTop: 10,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: 280,
+    }
+})
