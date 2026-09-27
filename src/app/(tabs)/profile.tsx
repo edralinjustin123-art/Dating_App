@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 
 
@@ -23,9 +23,8 @@ export default function Profile() {
       <Text style={styles.title}>Welcome Back!</Text>
     <View style={styles.profileContainer}>
 
-      <View style={styles.photo}>
-        <Text>PHOTO</Text>
-      </View>
+      <Image style={styles.photo} 
+      source={require('../../components/images/profile.png')}/>
 
       <View style={styles.info}>
 

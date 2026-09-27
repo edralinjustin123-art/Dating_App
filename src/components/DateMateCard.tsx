@@ -1,6 +1,6 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-  function DateMateCard(props) {
+ export function DateMateCard(props) {
     return (
       <View style={styles.cardCont}>
         <Image style={styles.profilePic} 
@@ -29,48 +29,7 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
     );
 }
 
-export default function HomeScreen() {
-  return (
-  <View style={styles.background}>
-      <Text style={styles.title}>Home</Text>
-    
-    <View style={styles.container}>
-       
-
-      <DateMateCard
-      photo={require('../../components/images/profile.png')}
-      name="Juan"
-      age="25"
-      status="Online"
-      message="h3110 p0,<3"
-      />
-
-      <DateMateCard
-      photo={require('../../components/images/profile.png')}
-      name="Pedro"
-      age="26"
-      status="Online"
-      message="wassup mga mananap"
-      />
-
-      <DateMateCard
-      photo={require('../../components/images/profile.png')}
-      name="Maria"
-      age="23"
-      status="Online"
-      message="Hi Pu"
-      />
-     
-    </View>
-  </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  background: {
-    alignItems: 'center',
-  },
-
   cardCont: {
     backgroundColor: 'white',
     width: 200,
@@ -159,17 +118,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
   },
-
-  container: {
-    backgroundColor: 'grey',
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
-});
+})
