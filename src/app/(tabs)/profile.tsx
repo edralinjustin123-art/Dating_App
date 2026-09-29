@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 
@@ -16,9 +17,10 @@ export default function Profile() {
     setDisplayAge(age);
   };
 
-  const [isOnline, setisOnline] = useState('Online');
+  const [isOnline, setisOnline] = useState(true);
 
   return (
+  <SafeAreaView style={{flex: 1}}>
   <View style={styles.mainContainer}>
       <Text style={styles.title}>Welcome Back!</Text>
     <View style={styles.profileContainer}>
@@ -31,7 +33,7 @@ export default function Profile() {
         <Text style={styles.name}>{displayName}</Text>
         <Text style={styles.age}>{displayAge} yrs old</Text>
           <View style={styles.status}>
-            <View style={styles.statusCircle}></View>
+            <View style={[styles.statusCircle, {backgroundColor: isOnline ? 'green' : 'red',}]}></View>
             <Text style={styles.statusText}>{isOnline}</Text>
           </View>
 
@@ -52,17 +54,14 @@ export default function Profile() {
       </View>
 
       <TouchableOpacity style={styles.statusBtnOff} 
-                        onPress={ () => {setisOnline('Offline');
+                        onPress={ () => {setisOnline(!isOnline);
                         }}>
-        <Text>Go Offline</Text>
+        <Text>Go Offline/Online</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.statusBtnOn } 
-                        onPress={ () => {setisOnline('Online');
-                        }}>
-        <Text>Go Online</Text>
-      </TouchableOpacity>
+     
   </View>
+  </SafeAreaView>
   );
 }
 
@@ -78,11 +77,12 @@ const styles = StyleSheet.create ({
   title: {
     fontWeight: 'bold',
     fontSize: 30,
+    
+    
   },
 
   profileContainer: {
     flexDirection: 'row',
-    
     justifyContent: 'center',
     padding: 10,
 
