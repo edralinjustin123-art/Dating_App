@@ -1,130 +1,192 @@
 import React, { useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View, } from "react-native";
+import {
+  Alert,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import * as ImagePicker from "expo-image-picker";
 
 export default function App() {
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [gender, setGender] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [registered, setRegistered] = useState(false);
+  const [name, setName] = useState("User");
+  const [age, setAge] = useState("20");
+  const [gender, setGender] = useState("Not set");
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
-  const handleRegister = () => {
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match.");
+  const [editingName, setEditingName] = useState(false);
+  const [editingAge, setEditingAge] = useState(false);
+
+  const editProfilePhoto = async () => {
+    const permission =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        "Permission Required",
+        "Please allow access to your photos."
+      );
       return;
     }
 
-    setRegistered(true);
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setProfileImage(result.assets[0].uri);
+    }
   };
 
-  if (registered) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>💕 DateMate</Text>
-        <Text style={styles.subtitle}>Welcome!</Text>
-
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Profile</Text>
-
-          <View style={styles.row}>
-            <View style={styles.details}>
-              <Text style={styles.label}>Name</Text>
-              <Text style={styles.info}>{name}</Text>
-            </View>
-
-            <TouchableOpacity style={styles.editButton}>
-              <Text style={styles.editText}>Edit</Text>
-            </TouchableOpacity>
-          </View>
-
- 
-          <Text style={styles.label}>Age</Text>
-          <Text style={styles.info}>{age}</Text>
-
-
-          <Text style={styles.label}>Gender</Text>
-          <Text style={styles.info}>{gender}</Text>
-
-
-          <View style={styles.row}>
-            <View style={styles.details}>
-              <Text style={styles.label}>Password</Text>
-              <Text style={styles.info}>••••••••</Text>
-            </View>
-
-            <TouchableOpacity style={styles.editButton}>
-              <Text style={styles.editText}>Change Password</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-
-        <TouchableOpacity style={styles.dateButton}>
-          <Text style={styles.dateButtonText}>Find Your Date</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
+  const editGender = () => {
+    Alert.alert("Select Gender", "", [
+      {
+        text: "Male",
+        onPress: () => setGender("Male"),
+      },
+      {
+        text: "Female",
+        onPress: () => setGender("Female"),
+      },
+      {
+        text: "Other",
+        onPress: () => setGender("Other"),
+      },
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+    ]);
+  };
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={["#6A0DAD", "#7B1E4B", "#8B0000"]}
+      locations={[0, 0.5, 1]}
+      style={styles.container}
+    >
+      {/* Title */}
       <Text style={styles.title}>💕 DateMate</Text>
-      <Text style={styles.subtitle}>Create your account</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Name"
-        value={name}
-        onChangeText={setName}
-      />
+      {/* Profile Card */}
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Profile</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Age"
-        value={age}
-        onChangeText={setAge}
-        keyboardType="numeric"
-      />
+        {/* Profile Picture */}
+        <View style={styles.photoContainer}>
+          {profileImage ? (
+            <Image
+              source={{ uri: profileImage }}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.placeholder}>
+              <Text style={styles.placeholderText}>👤</Text>
+            </View>
+          )}
 
-      <TextInput
-        style={styles.input}
-        placeholder="Gender"
-        value={gender}
-        onChangeText={setGender}
-      />
+          <TouchableOpacity
+            style={styles.photoButton}
+            onPress={editProfilePhoto}
+          >
+            <Text style={styles.photoButtonText}>Edit Photo</Text>
+          </TouchableOpacity>
+        </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry={true}
-      />
+        {/* Name */}
+        <Text style={styles.label}>Name</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry={true}
-      />
+        <View style={styles.row}>
+          {editingName ? (
+            <TextInput
+              style={styles.editInput}
+              value={name}
+              onChangeText={setName}
+              autoFocus
+            />
+          ) : (
+            <Text style={styles.textValue}>{name}</Text>
+          )}
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleRegister}
-      >
-        <Text style={styles.buttonText}>Register</Text>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => setEditingName(!editingName)}
+          >
+            <Text style={styles.editText}>
+              {editingName ? "Done" : "Edit"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Age */}
+        <Text style={styles.label}>Age</Text>
+
+        <View style={styles.row}>
+          {editingAge ? (
+            <TextInput
+              style={styles.editInput}
+              value={age}
+              onChangeText={setAge}
+              keyboardType="numeric"
+              autoFocus
+            />
+          ) : (
+            <Text style={styles.textValue}>{age}</Text>
+          )}
+
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => setEditingAge(!editingAge)}
+          >
+            <Text style={styles.editText}>
+              {editingAge ? "Done" : "Edit"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Gender */}
+        <Text style={styles.label}>Gender</Text>
+
+        <View style={styles.row}>
+          <Text style={styles.textValue}>{gender}</Text>
+
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={editGender}
+          >
+            <Text style={styles.editText}>Edit</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Password */}
+        <Text style={styles.label}>Password</Text>
+
+        <View style={styles.row}>
+          <Text style={styles.textValue}>••••••••</Text>
+
+          <TouchableOpacity style={styles.editButton}>
+            <Text style={styles.editText}>Change</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Find Your Date */}
+      <TouchableOpacity style={styles.dateButton}>
+        <Text style={styles.dateButtonText}>Find Your Date</Text>
       </TouchableOpacity>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     justifyContent: "center",
     padding: 25,
   },
@@ -134,88 +196,109 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 5,
+    color: "#fff",
   },
 
   subtitle: {
     fontSize: 16,
     textAlign: "center",
-    color: "gray",
-    marginBottom: 30,
+    color: "#eee",
+    marginBottom: 25,
   },
 
   card: {
-    backgroundColor: "#f8f8f8",
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
     padding: 25,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "rgba(255, 255, 255, 0.5)",
   },
 
   cardTitle: {
     fontSize: 22,
     fontWeight: "bold",
     marginBottom: 15,
+    color: "#333",
   },
 
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  photoContainer: {
+    alignItems: "center",
+    marginBottom: 15,
+  },
+
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 10,
+  },
+
+  placeholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#ddd",
+    justifyContent: "center",
     alignItems: "center",
     marginBottom: 10,
   },
 
-  details: {
-    flex: 1,
+  placeholderText: {
+    fontSize: 55,
   },
 
-  label: {
-    fontSize: 14,
-    color: "gray",
-    marginTop: 10,
-  },
-
-  info: {
-    fontSize: 18,
-    fontWeight: "500",
-    marginTop: 3,
-  },
-
-  editButton: {
+  photoButton: {
     backgroundColor: "#ddd",
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 15,
     borderRadius: 8,
-    marginLeft: 10,
   },
 
-  editText: {
+  photoButtonText: {
     color: "#333",
     fontWeight: "bold",
     fontSize: 13,
   },
 
-  input: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-
-  button: {
-    backgroundColor: "#ff4f81",
-    height: 50,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
+  label: {
+    fontSize: 14,
+    color: "#777",
     marginTop: 10,
+    marginBottom: 3,
   },
 
-  buttonText: {
-    color: "#fff",
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 40,
+  },
+
+  textValue: {
+    flex: 1,
     fontSize: 18,
+    color: "#333",
+    paddingVertical: 5,
+  },
+
+  editInput: {
+    flex: 1,
+    fontSize: 18,
+    color: "#333",
+    borderBottomWidth: 1,
+    borderBottomColor: "#aaa",
+    paddingVertical: 5,
+  },
+
+  editButton: {
+    backgroundColor: "#eee",
+    paddingVertical: 10,
+    paddingHorizontal: 13,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+
+  editText: {
+    color: "#333",
     fontWeight: "bold",
   },
 
@@ -225,7 +308,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 25,
+    marginTop: 20,
   },
 
   dateButtonText: {
@@ -234,144 +317,3 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
-
-
-
-/*
-import React, { useState } from "react";
-import {
-  Alert,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-
-export default function App() {
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [gender, setGender] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const handleRegister = () => {
-  
-    if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match.");
-      return;
-    }
-
-    console.log("===== REGISTERED USER =====");
-    console.log("Name:", name);
-    console.log("Age:", age);
-    console.log("Gender:", gender);
-    console.log("Password:", password);
-    console.log("Confirm Password:", confirmPassword);
-    console.log("===========================");
-
-    Alert.alert("Success", "Registration successful!");
-  };
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>💕 DateMate</Text>
-      <Text style={styles.subtitle}>Create your account</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Name"
-        value={name}
-        onChangeText={setName}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Age"
-        value={age}
-        onChangeText={setAge}
-        keyboardType="numeric"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Gender"
-        value={gender}
-        onChangeText={setGender}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry={true}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry={true}
-      />
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleRegister}
-      >
-        <Text style={styles.buttonText}>Register</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    padding: 25,
-  },
-
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 5,
-  },
-
-  subtitle: {
-    fontSize: 16,
-    textAlign: "center",
-    color: "gray",
-    marginBottom: 30,
-  },
-
-  input: {
-    height: 50,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    fontSize: 16,
-  },
-
-  button: {
-    backgroundColor: "#ff4f81",
-    height: 50,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 10,
-  },
-
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-});
-
-*/
