@@ -1,26 +1,39 @@
+import { router } from 'expo-router';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignupScreen () {
   return (
-  <View style={styles.backGround}>
+  <SafeAreaView style={{flex: 1}}>
+  <View style={styles.background}>
     <View style={styles.mainCont}>
       <Text style={styles.title}>Create Account</Text>
       
       <Text style={styles.Description}>First Name</Text>
-      <TextInput style={styles.Input} placeholder='Enter First Name'></TextInput>
+      <TextInput style={styles.Input} placeholder='Enter First Name' 
+      placeholderTextColor="rgba(0, 0, 0, 0.4)">
+      </TextInput>
 
       <Text style={styles.Description}>Last Name</Text>
-      <TextInput style={styles.Input} placeholder='Enter Last Name'></TextInput>
+      <TextInput style={styles.Input} placeholder='Enter Last Name' 
+      placeholderTextColor="rgba(0, 0, 0, 0.4)" >
+      </TextInput>
 
       <Text style={styles.Description}>Username</Text>
-      <TextInput style={styles.Input} placeholder='Enter Username'></TextInput>
+      <TextInput style={styles.Input} placeholder='Enter Username' 
+      placeholderTextColor="rgba(0, 0, 0, 0.4)" >
+      </TextInput>
 
       <Text style={styles.Description}>Age</Text>
-      <TextInput style={styles.Input} placeholder='Enter Age'></TextInput>
+      <TextInput style={styles.Input} placeholder='Enter Age' 
+      placeholderTextColor="rgba(0, 0, 0, 0.4)" >
+      </TextInput>
 
       <Text style={styles.Description}>Password</Text>
-      <TextInput style={styles.Input} placeholder='Enter Password' secureTextEntry={true}></TextInput>
+      <TextInput style={styles.Input} placeholder='Enter Password' 
+      secureTextEntry={true}
+      placeholderTextColor="rgba(0, 0, 0, 0.4)">
+      </TextInput>
 
       <View style={styles.accountHandling}>
         <View style={styles.rememberMeCont}>
@@ -31,18 +44,19 @@ export default function SignupScreen () {
 
       </View>
 
-      <TouchableOpacity style={styles.regBtn} onPress={() => console.log('Registration button pressed!')}>
+      <TouchableOpacity style={styles.regBtn} onPress={() => router.replace('/(tabs)/home')}>
         <Text style={styles.regText}>Register</Text>
       </TouchableOpacity>
     </View>
   </View>
+  </SafeAreaView>
 
   );
 }
 
 const styles = StyleSheet.create ({
 
-  backGround: {
+  background: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -50,9 +64,9 @@ const styles = StyleSheet.create ({
   mainCont: {
     justifyContent: 'center',
     alignItems: 'center',
-    height: 650,
-    width: 400,
-    borderRadius: 50,
+    width: "100%",
+    height: "80%",
+    borderRadius: 20,
     backgroundColor: 'grey'
   },
 
@@ -62,27 +76,29 @@ const styles = StyleSheet.create ({
   },
 
   Description: {
+    width: '80%',
     fontSize: 16,
     fontWeight: 'bold',
+    
     marginBottom: 5,
     marginTop: 10,
-    alignSelf: 'flex-start',
-    marginLeft: 40,
+   
+    
   },
 
   Input: {
-    width: 340,
-    height: 50,
+    width: '80%',
+    height: '5%',
     backgroundColor: 'white',
     borderRadius: 100,
-    alignSelf: 'flex-start',
-    marginLeft: 30,
-    padding: 15,
+    
+    
+    paddingLeft: 15,
   },
 
   accountHandling: {
-    height: 30,
-    width: 340,
+    height: '4%',
+    width: '80%',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignSelf: 'center',
@@ -113,12 +129,12 @@ const styles = StyleSheet.create ({
 
   regBtn: {
     backgroundColor: 'blue',
-    width: 340,
-    height: 50,
+    width: '80%',
+    height: '8%',
     borderRadius: 100,
     alignItems: 'center',
     justifyContent: 'center',
-    margin: 10,
+    margin: 20,
   },
 
   regText: {
