@@ -12,7 +12,8 @@ const validUrl = (() => {
   }
 })();
 
-export const isAuthConfigured = Boolean(validUrl && key?.startsWith('sb_publishable_'));
+const validKey = Boolean(key?.startsWith('sb_publishable_'));
+export const isAuthConfigured = Boolean(validUrl && validKey);
 export const supabase = isAuthConfigured
   ? createClient(url, key, {
       auth: {
@@ -27,6 +28,11 @@ export const supabase = isAuthConfigured
   : null;
 
 export function requireAuthClient() {
-  if (!supabase) throw new Error('Sign-in is not available yet. Please try again later.');
+  if (!validUrl) {
+    throw new Error('Sign-in needs the Supabase project URL. Add EXPO_PUBLIC_SUPABASE_URL to .env.local and restart Expo.');
+  }
+  if (!validKey) {
+    throw new Error('Sign-in needs the Supabase publishable key. Add EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY to .env.local and restart Expo.');
+  }
   return supabase;
 }

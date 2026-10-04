@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
-import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import InputField from './InputField';
 import PasswordInput from './PasswordInput';
 import CustomSwitch from './CustomSwitch';
 import SocialButtons from './SocialButtons';
 import { Gradients } from '../../constants/colors';
+import { getPasswordError } from '../../utils/password-validation';
 export default function SignupScreen({ onSwitch, onSignup, isSubmitting = false }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [socialSubmitting, setSocialSubmitting] = useState(false);
   return (
     <View style={styles.formContainer}>
       <Text style={styles.formTitle}>Create your DateMate account</Text>
@@ -27,8 +30,10 @@ export default function SignupScreen({ onSwitch, onSignup, isSubmitting = false 
       <PasswordInput
         label="Password"
         value={password}
-        onChangeText={setPassword}
+        onChangeText={(value) => { setPassword(value); setPasswordError(''); }}
         placeholder="Enter your password"
+        maxLength={10}
+        errorMessage={passwordError}
       />
 
       <PasswordInput
@@ -36,6 +41,7 @@ export default function SignupScreen({ onSwitch, onSignup, isSubmitting = false 
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         placeholder="Confirm your password"
+        maxLength={10}
       />
 
       <View style={styles.termsContainer}>
@@ -47,26 +53,34 @@ export default function SignupScreen({ onSwitch, onSignup, isSubmitting = false 
 
       <TouchableOpacity
         style={styles.glassButton}
-        disabled={isSubmitting}
+        disabled={isSubmitting || socialSubmitting}
         accessibilityRole="button"
-        accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
-        onPress={() => onSignup(email.trim(), password, confirmPassword, agreeTerms)}>
+        accessibilityState={{ disabled: isSubmitting || socialSubmitting, busy: isSubmitting || socialSubmitting }}
+        onPress={() => {
+          const validationError = getPasswordError(password);
+          setPasswordError(validationError);
+          if (!validationError) onSignup(email.trim(), password, confirmPassword, agreeTerms);
+        }}>
         <LinearGradient colors={Gradients.button} style={styles.buttonGradient}>
-          <Text style={styles.buttonText}>{isSubmitting ? 'Creating account...' : 'Sign Up'}</Text>
+          {isSubmitting || socialSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buttonText}>Create Account</Text>
+          )}
         </LinearGradient>
       </TouchableOpacity>
 
       <View style={styles.dividerContainer}>
         <View style={styles.divider} />
-        <Text style={styles.dividerText}>or sign in with</Text>
+        <Text style={styles.dividerText}>or continue with</Text>
         <View style={styles.divider} />
       </View>
 
-      <SocialButtons disabled={isSubmitting} />
+      <SocialButtons disabled={isSubmitting} onPendingChange={setSocialSubmitting} />
 
-      <TouchableOpacity onPress={onSwitch} style={styles.switchContainer}>
+      <TouchableOpacity disabled={isSubmitting || socialSubmitting} onPress={onSwitch} style={styles.switchContainer}>
         <Text style={styles.switchText}>
-          Already have an account? <Text style={styles.switchLink}>Log In</Text>
+          Already have an account? <Text style={styles.switchLink}>Sign In</Text>
         </Text>
       </TouchableOpacity>
     </View>

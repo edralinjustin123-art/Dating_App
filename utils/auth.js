@@ -17,7 +17,7 @@ export async function completeOAuthSignIn(url) {
 }
 
 export async function signInWithProvider(provider) {
-  if (!['google', 'apple'].includes(provider)) throw new Error('Unsupported sign-in provider.');
+  if (!['google', 'facebook'].includes(provider)) throw new Error('Unsupported sign-in provider.');
   const client = requireAuthClient();
   if (
     Platform.OS !== 'web' &&
@@ -43,9 +43,14 @@ export async function signInWithProvider(provider) {
     return;
   }
   const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (result.type === 'cancel' || result.type === 'dismiss') return;
+  if (result.type === 'cancel' || result.type === 'dismiss') return { cancelled: true };
   if (result.type !== 'success') throw new Error('Sign-in did not finish. Please try again.');
-  await completeOAuthSignIn(result.url);
+  try {
+    return await completeOAuthSignIn(result.url);
+  } catch (cause) {
+    if (/sign-in was cancelled/i.test(cause.message || '')) return { cancelled: true };
+    throw cause;
+  }
 }
 
 export async function signInWithEmail(email, password) {
@@ -60,6 +65,19 @@ export async function signUpWithEmail(email, password) {
     password,
     options: { emailRedirectTo: getAuthRedirectUri() },
   });
+  if (error) throw error;
+  return data;
+}
+
+export async function sendPasswordReset(email) {
+  const { error } = await requireAuthClient().auth.resetPasswordForEmail(email, {
+    redirectTo: getAuthRedirectUri(),
+  });
+  if (error) throw error;
+}
+
+export async function updatePassword(password) {
+  const { data, error } = await requireAuthClient().auth.updateUser({ password });
   if (error) throw error;
   return data;
 }

@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   Animated,
   KeyboardAvoidingView,
   Platform,
@@ -13,16 +14,19 @@ import {
   View,
 } from 'react-native';
 import LoginScreen from '../../components/ui/LoginScreen';
-import ProfileScreen from '../../components/ui/ProfileScreen';
+import DateMateHomeScreen from '../../components/ui/HomeScreen';
 import SignupScreen from '../../components/ui/SignupScreen';
 import { clearCredentials, loadCredentials, saveCredentials } from '../../utils/storage';
 import { useAuth } from '../../hooks/use-auth';
 import { signInWithEmail, signUpWithEmail, signOut } from '../../utils/auth';
+import { getPasswordError } from '../../utils/password-validation';
 export default function HomeScreen() {
   const { user, initializing, error: sessionError } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const signupRequestInProgress = useRef(false);
   const [notice, setNotice] = useState(null);
+  const [signupSuccess, setSignupSuccess] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
   const [intro] = useState(() => new Animated.Value(0));
   const [form] = useState(() => new Animated.Value(1));
@@ -68,33 +72,60 @@ export default function HomeScreen() {
     }
   };
   const handleSignup = async (email, password, confirmPassword, agreeTerms) => {
-    if (isSubmitting) return;
+    if (isSubmitting || signupRequestInProgress.current) return;
     if (!email || !password || !confirmPassword)
       return setNotice({ type: 'error', message: 'Please fill in all fields.' });
     if (!/^\S+@\S+\.\S+$/.test(email))
       return setNotice({ type: 'error', message: 'Enter a valid email address.' });
+    const passwordError = getPasswordError(password);
+    if (passwordError) return setNotice({ type: 'error', message: passwordError });
     if (password !== confirmPassword)
       return setNotice({ type: 'error', message: 'Passwords do not match.' });
     if (!agreeTerms)
       return setNotice({ type: 'error', message: 'Please agree to the Terms and Privacy Policy.' });
+    signupRequestInProgress.current = true;
     setIsSubmitting(true);
     setNotice(null);
     try {
-      const { session } = await signUpWithEmail(email, password);
+      const { session, user: createdUser } = await signUpWithEmail(email, password);
       setLoginEmail(email);
-      if (!session) {
+      if (session) {
+        setSignupSuccess('Account created successfully!');
+      } else if (Array.isArray(createdUser?.identities) && createdUser.identities.length === 0) {
+        // Supabase intentionally masks duplicate-email outcomes when email confirmation is enabled.
         setNotice({
           type: 'success',
-          message: 'Check your email to confirm your account, then sign in.',
+          message: 'If this email can be registered, you’ll receive a verification link. If you already have an account, sign in instead.',
+          action: 'signin',
+        });
+      } else if (createdUser) {
+        setNotice({
+          type: 'success',
+          message: 'Account created successfully! Check your email to verify your account, then sign in.',
         });
         animateTransition(() => setIsLogin(true));
+      } else {
+        setNotice({ type: 'error', message: 'We couldn’t confirm account creation. Please try again.' });
       }
     } catch (cause) {
-      setNotice({
-        type: 'error',
-        message: cause.message || 'Account creation failed. Please try again.',
-      });
+      const backendMessage = String(cause?.message || '');
+      if (/user already registered|email already exists|already been registered/i.test(backendMessage)) {
+        setNotice({
+          type: 'error',
+          message: 'An account with this email already exists. Please sign in instead.',
+          action: 'signin',
+        });
+      } else if (/invalid email|unable to validate email/i.test(backendMessage)) {
+        setNotice({ type: 'error', message: 'Enter a valid email address.' });
+      } else if (/weak password|password.*(too short|at least|characters|contain)/i.test(backendMessage)) {
+        setNotice({ type: 'error', message: 'Use 8–10 characters, with a letter and a number or symbol.' });
+      } else if (cause?.name === 'AuthRetryableFetchError' || /network request failed|failed to fetch|network error|fetch failed/i.test(backendMessage)) {
+        setNotice({ type: 'error', message: 'Couldn’t connect to DateMate. Check your internet connection and try again.' });
+      } else {
+        setNotice({ type: 'error', message: 'We couldn’t create your account right now. Please try again.' });
+      }
     } finally {
+      signupRequestInProgress.current = false;
       setIsSubmitting(false);
     }
   };
@@ -106,6 +137,7 @@ export default function HomeScreen() {
       await signOut();
       await clearCredentials();
       setLoginEmail('');
+      setSignupSuccess('');
     } catch (cause) {
       setNotice({
         type: 'error',
@@ -124,8 +156,9 @@ export default function HomeScreen() {
     );
   if (user)
     return (
-      <ProfileScreen
-        email={user.email || 'Signed-in account'}
+      <DateMateHomeScreen
+        email={user.email || user.user_metadata?.full_name || user.user_metadata?.name || ''}
+        successMessage={signupSuccess}
         onLogout={handleLogout}
         isSigningOut={isSubmitting}
         error={notice?.type === 'error' ? notice.message : ''}
@@ -174,11 +207,21 @@ export default function HomeScreen() {
               },
             ]}>
             {notice || sessionError ? (
-              <Text
-                accessibilityRole="alert"
-                style={[styles.notice, notice?.type === 'success' && styles.success]}>
-                {notice?.message || sessionError}
-              </Text>
+              <View style={styles.noticeGroup}>
+                <Text
+                  accessibilityRole="alert"
+                  style={[styles.notice, notice?.type === 'success' && styles.success]}>
+                  {notice?.message || sessionError}
+                </Text>
+                {notice?.action === 'signin' ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => animateTransition(() => setIsLogin(true))}
+                    style={styles.noticeAction}>
+                    <Text style={styles.noticeActionText}>Sign In</Text>
+                  </Pressable>
+                ) : null}
+              </View>
             ) : null}
             {isLogin ? (
               <LoginScreen
@@ -215,8 +258,11 @@ const styles = StyleSheet.create({
     gap: 16,
     backgroundColor: '#FFFFFF',
   },
-  notice: { color: '#B42318', fontSize: 14, lineHeight: 20, marginBottom: 16 },
+  noticeGroup: { marginBottom: 16 },
+  notice: { color: '#B42318', fontSize: 14, lineHeight: 20 },
   success: { color: '#166534' },
+  noticeAction: { alignSelf: 'flex-start', paddingTop: 10, paddingBottom: 2 },
+  noticeActionText: { color: '#ED4567', fontSize: 14, fontWeight: '700', textDecorationLine: 'underline' },
   screen: { flex: 1 },
   scroll: {
     flexGrow: 1,

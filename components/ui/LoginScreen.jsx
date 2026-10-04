@@ -1,10 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import CustomSwitch from './CustomSwitch';
 import InputField from './InputField';
 import PasswordInput from './PasswordInput';
 import SocialButtons from './SocialButtons';
+import { sendPasswordReset } from '../../utils/auth';
 export default function LoginScreen({
   onSwitch,
   onLogin,
@@ -13,6 +14,9 @@ export default function LoginScreen({
 }) {
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [resetting, setResetting] = useState(false);
+  const [socialSubmitting, setSocialSubmitting] = useState(false);
   const [remember, setRemember] = useState(Boolean(initialEmail));
   const [previousInitialEmail, setPreviousInitialEmail] = useState(initialEmail);
   if (previousInitialEmail !== initialEmail) {
@@ -40,8 +44,13 @@ export default function LoginScreen({
         <PasswordInput
           label="Password"
           value={password}
-          onChangeText={setPassword}
           placeholder="Enter your password"
+          helperText={null}
+          errorMessage={passwordError}
+          onChangeText={(value) => {
+            setPassword(value);
+            setPasswordError('');
+          }}
         />
       </View>
 
@@ -55,37 +64,53 @@ export default function LoginScreen({
           <Text style={styles.optionText}>Remember me</Text>
         </Pressable>
         <Pressable
-          onPress={() =>
-            Alert.alert('Password reset', 'Password reset will be available after backend setup.')
-          }
+          disabled={resetting || isSubmitting || socialSubmitting}
+          onPress={async () => {
+            if (!email.trim()) {
+              Alert.alert('Reset password', 'Enter your email address first.');
+              return;
+            }
+            setResetting(true);
+            try {
+              await sendPasswordReset(email.trim());
+              Alert.alert('Check your email', 'If an account exists for this address, a password reset link is on its way.');
+            } catch (error) {
+              Alert.alert('Could not send reset link', error.message || 'Please try again.');
+            } finally {
+              setResetting(false);
+            }
+          }}
           accessibilityRole="button">
-          <Text style={styles.forgot}>Forgot password?</Text>
+          {resetting ? <ActivityIndicator size="small" color="#ED4567" /> : <Text style={styles.forgot}>Forgot password?</Text>}
         </Pressable>
       </View>
 
       <Pressable
         style={({ pressed }) => [styles.primaryWrap, pressed && styles.pressed]}
-        onPress={() => onLogin(email.trim(), password, remember)}
-        disabled={isSubmitting}
-        accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+        onPress={() => {
+          setPasswordError('');
+          onLogin(email.trim(), password, remember);
+        }}
+        disabled={isSubmitting || socialSubmitting || resetting}
+        accessibilityState={{ disabled: isSubmitting || socialSubmitting || resetting, busy: isSubmitting || socialSubmitting }}
         accessibilityRole="button">
         <LinearGradient
           colors={['#FF416C', '#FF6B6B']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.primary}>
-          <Text style={styles.primaryText}>{isSubmitting ? 'Signing in...' : 'Log in'}</Text>
+          {isSubmitting || socialSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Log in</Text>}
         </LinearGradient>
       </Pressable>
 
       <View style={styles.divider}>
         <View style={styles.line} />
-        <Text style={styles.dividerText}>or sign in with</Text>
+        <Text style={styles.dividerText}>or continue with</Text>
         <View style={styles.line} />
       </View>
-      <SocialButtons disabled={isSubmitting} />
+      <SocialButtons disabled={isSubmitting || resetting} onPendingChange={setSocialSubmitting} />
 
-      <Pressable onPress={onSwitch} style={styles.switchLink} accessibilityRole="button">
+      <Pressable disabled={isSubmitting || socialSubmitting} onPress={onSwitch} style={styles.switchLink} accessibilityRole="button">
         <Text style={styles.switchText}>
           New to DateMate? <Text style={styles.accent}>Create account</Text>
         </Text>

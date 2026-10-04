@@ -1,14 +1,14 @@
-# DateMate Google and Apple sign-in
+# DateMate Google and Facebook sign-in
 
-The app uses Supabase Auth for Google, Apple, and email/password accounts. The profile screen requires a real Supabase session. There is no demo login bypass.
+The app uses Supabase Auth for Google, Facebook, and email/password accounts. The profile screen requires a real Supabase session. There is no demo login bypass.
 
-The target app is Android/iOS. The current Google integration uses Supabase browser OAuth: the phone opens a system browser sign-in session, Google returns to Supabase, and Supabase returns to the installed app at `datingapp://auth/callback`.
+The target app is Android/iOS. Google and Facebook use Supabase browser OAuth: the phone opens the provider's official sign-in flow, the provider returns to Supabase, and Supabase returns to the installed app at `datingapp://auth/callback`. Google requests `prompt=select_account` to show the account chooser.
 
-For this flow, Google's **Web application** OAuth client represents Supabase's server callback. It does not change the app's platform or require deploying a website. Android/iOS OAuth clients are used when integrating Google's native SDK; the current app uses `signInWithOAuth` and `openAuthSessionAsync` instead.
+For the Google flow, Google's **Web application** OAuth client represents Supabase's server callback. Its client ID and secret belong in Supabase's Google provider settings, never in the mobile app. Android/iOS OAuth clients are not used by this browser OAuth flow.
 
 ## Current connection status
 
-Verified September 20, 2026: the local project URL and publishable key work. Email/password and new sign-ups are enabled, with email confirmation required. Google and Apple are disabled. Dashboard redirect settings and a full account sign-in have not been verified.
+The latest local check cannot reach Supabase because `.env.local` does not contain a valid `sb_publishable_` key. Provider enabled status, dashboard redirect settings, and full account sign-in have not been verified from this checkout.
 
 Run `npm run check:supabase` for the current connection and provider status. This read-only check does not create accounts, send email, or print the key.
 
@@ -23,7 +23,7 @@ In Supabase, open Project Settings > API Keys and copy the **publishable** key (
 
 .env.local is ignored by Git. .env.example documents the required public settings. Restart Expo after changing the environment. Legacy anon keys are not used by this integration.
 
-Do not put a service-role key, secret API key, Google client secret, or Apple private key in the app or any EXPO_PUBLIC_ setting.
+Do not put a service-role key, secret API key, Google client secret, or Facebook App Secret in the app or any EXPO_PUBLIC_ setting.
 
 ## 2. Configure mobile redirects in Supabase
 
@@ -58,18 +58,18 @@ Google's redirect URI is `https://saftmdboynulxxsnypwg.supabase.co/auth/v1/callb
 
 Official guides: https://supabase.com/docs/guides/auth/social-login/auth-google and https://developers.google.com/identity/protocols/oauth2/web-server#creatingcred
 
-## 4. Enable Apple
+## 4. Enable Facebook
 
-Use an Apple Developer account to configure Sign in with Apple, including a primary App ID, a Services ID for browser OAuth, and a signing key. Register the domain and return URL for this Supabase project:
+1. Create or select a Facebook app at https://developers.facebook.com/ and add the Facebook Login product.
+2. In Facebook Login > Settings, add this exact Supabase callback under **Valid OAuth Redirect URIs**:
 
-- Domain: saftmdboynulxxsnypwg.supabase.co
-- Return URL: https://saftmdboynulxxsnypwg.supabase.co/auth/v1/callback
+       https://saftmdboynulxxsnypwg.supabase.co/auth/v1/callback
 
-In Supabase > Authentication > Sign In / Providers > Apple, enable Apple and configure the Services ID/client ID and generated client secret. Keep the Apple .p8 key and generated secret out of the app. Apple OAuth secrets need renewal before they expire (at most six months).
+3. In the Facebook app's Authentication and Account Creation use case, enable the `public_profile` and `email` permissions. Add the accounts used for development as app testers/developers, or switch the app to Live when ready.
+4. Copy the Facebook **App ID** and **App Secret** from Settings > Basic. In Supabase > Authentication > Sign In / Providers > Facebook, enable Facebook and enter these values. Keep the App Secret only in Supabase; never add it to `.env.local` or the mobile app.
+5. Preserve `datingapp://auth/callback` in Supabase Authentication > URL Configuration > Redirect URLs. Meta's callback is the Supabase URL above; Supabase's redirect is the app's custom URI.
 
-The current integration uses browser OAuth on all platforms. Apple may supply a private relay email; the profile uses the verified email supplied by Supabase.
-
-Official guide: https://supabase.com/docs/guides/auth/social-login/auth-apple
+Official guide: https://supabase.com/docs/guides/auth/social-login/auth-facebook
 
 ## 5. Run and check on Android/iOS
 
@@ -78,7 +78,7 @@ Official guide: https://supabase.com/docs/guides/auth/social-login/auth-apple
 Install or update Expo Go on the iPhone, connect it to the same Wi-Fi as this
 computer, and run `npm start`. Scan the new QR with the iPhone Camera and open
 it in Expo Go. This can preview the app and sign in with an already confirmed
-email/password account. Google/Apple OAuth requires the development build below.
+email/password account. Google/Facebook OAuth requires the development build below.
 
 `npm start` uses `expo start --go`. Because `expo-dev-client` is installed, a bare
 `npx expo start` can generate a QR for the DateMate development app instead.
@@ -89,7 +89,7 @@ If Expo Go opens but cannot connect, check that both devices use the same Wi-Fi
 and allow Expo Go local-network access in iPhone Settings. For a restrictive
 network, `npm start -- --tunnel` can use Expo's tunnel support.
 
-### Development build for Google/Apple sign-in
+### Development build for Google/Facebook sign-in
 
 Use an installed development build with the existing `datingapp` URL scheme. Expo Go cannot handle this app's custom OAuth redirect. `app.json` now uses `com.datemate.app` for both `android.package` and `ios.bundleIdentifier`, and includes `expo-dev-client`. These are development identifiers; confirm the final identifiers before publishing.
 
@@ -122,7 +122,7 @@ From Windows, use EAS Build with an Expo account and Apple signing credentials f
     npx eas-cli@latest login
     npx eas-cli@latest build:configure
 
-Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in that project's EAS **development** environment as plaintext variables. The ignored `.env.local` is not uploaded to EAS. Use the same two public values as your local configuration; Google/Apple secrets stay in Supabase.
+Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in that project's EAS **development** environment as plaintext variables. The ignored `.env.local` is not uploaded to EAS. Use the same two public values as your local configuration; Google/Facebook secrets stay in Supabase.
 
     npx eas-cli@latest build --platform ios --profile development
 
@@ -152,7 +152,7 @@ Verification on September 20, 2026:
 - Lint, all nine authentication tests, and all 21 Expo Doctor checks passed.
 - The iOS JavaScript bundle exported successfully; this is not an iOS native build or a device sign-in test.
 - Android prebuild succeeded. The native APK build was stopped while installing the missing NDK 27.1.12297006 because the only available drive had about 3 GB free. No APK was produced or installed. Free disk space before retrying `npm run build:android`.
-- Supabase accepts the public key. Google and Apple remain disabled until their provider credentials are configured in the dashboard.
+- Current provider status has not been verified because the local publishable key is missing. Configure Google and Facebook in the Supabase dashboard before testing.
 
 Local checks:
 
@@ -162,6 +162,6 @@ Local checks:
     npx expo-doctor
     npx expo export --platform all
 
-The publishable key is configured locally. Live Google/Apple sign-in still requires provider credentials, enabled providers, and verified dashboard redirect settings.
+Live Google/Facebook sign-in requires a valid publishable key, provider credentials, enabled providers, and verified dashboard redirect settings.
 
 Mobile OAuth references: https://supabase.com/docs/guides/auth/native-mobile-deep-linking and https://docs.expo.dev/guides/authentication/

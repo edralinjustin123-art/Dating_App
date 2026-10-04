@@ -1,27 +1,39 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { signInWithProvider } from '../../utils/auth';
 
 const PROVIDERS = [
-  { id: 'google', name: 'Google', icon: 'logo-google', color: '#EA4335' },
-  { id: 'apple', name: 'Apple', icon: 'logo-apple', color: '#151218' },
+  { id: 'google', name: 'Google' },
+  { id: 'facebook', name: 'Facebook', icon: 'logo-facebook', color: '#1877F2' },
 ];
 
-export default function SocialButtons({ disabled = false }) {
+export default function SocialButtons({ disabled = false, onPendingChange }) {
   const [error, setError] = useState('');
   const [pendingProvider, setPendingProvider] = useState('');
+  const requestInProgress = useRef(false);
 
   const signIn = async (provider) => {
-    if (disabled || pendingProvider) return;
+    if (disabled || requestInProgress.current) return;
+    requestInProgress.current = true;
     setError('');
     setPendingProvider(provider);
+    onPendingChange?.(true);
     try {
-      await signInWithProvider(provider);
+      const result = await signInWithProvider(provider);
+      if (result?.cancelled) return;
     } catch (cause) {
-      setError(cause.message || 'Sign-in failed. Please try again.');
+      const message = cause.message || '';
+      if (/provider.*not enabled|unsupported provider/i.test(message)) {
+        const name = provider === 'google' ? 'Google' : 'Facebook';
+        setError(`${name} sign-in is not enabled in Supabase. Configure its provider credentials in Authentication > Sign In / Providers.`);
+      } else {
+        setError(message || 'Sign-in failed. Please try again.');
+      }
     } finally {
+      requestInProgress.current = false;
       setPendingProvider('');
+      onPendingChange?.(false);
     }
   };
 
@@ -40,9 +52,11 @@ export default function SocialButtons({ disabled = false }) {
             }}
             disabled={disabled || Boolean(pendingProvider)}
             onPress={() => signIn(provider.id)}>
-            <Ionicons name={provider.icon} size={21} color={provider.color} />
+            {pendingProvider === provider.id ? <ActivityIndicator color="#2D2933" /> : provider.id === 'google' ? (
+              <Image source={require('../../assets/images/google-g.png')} style={styles.googleLogo} accessibilityLabel="Google" />
+            ) : <Ionicons name={provider.icon} size={21} color={provider.color} />}
             <Text style={styles.text}>
-              {pendingProvider === provider.id ? 'Signing in...' : provider.name}
+              {pendingProvider === provider.id ? 'Signing in...' : `Continue with ${provider.name}`}
             </Text>
           </Pressable>
         ))}
@@ -57,9 +71,9 @@ export default function SocialButtons({ disabled = false }) {
 }
 const styles = StyleSheet.create({
   group: { gap: 8 },
-  container: { flexDirection: 'row', gap: 12 },
+  container: { gap: 10 },
   button: {
-    flex: 1,
+    width: '100%',
     height: 50,
     borderRadius: 15,
     borderWidth: 1,
@@ -72,5 +86,6 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.72 },
   text: { color: '#2D2933', fontSize: 15, fontWeight: '600' },
+  googleLogo: { width: 21, height: 21, resizeMode: 'contain' },
   error: { color: '#B42318', fontSize: 13, lineHeight: 18 },
 });

@@ -46,7 +46,7 @@ async function checkSupabase() {
   console.log(`Email/password: ${settings.external.email ? 'enabled' : 'disabled'}`);
   console.log(`New sign-ups: ${settings.disable_signup ? 'disabled' : 'enabled'}`);
   console.log(`Email confirmation: ${settings.mailer_autoconfirm ? 'not required' : 'required'}`);
-  for (const provider of ['google', 'apple']) {
+  for (const provider of ['google', 'facebook']) {
     console.log(`${provider}: ${settings.external[provider] ? 'enabled' : 'disabled - provider setup required'}`);
   }
   console.log('\nRedirect settings and a complete sign-in still need testing.');

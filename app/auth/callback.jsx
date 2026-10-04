@@ -9,6 +9,7 @@ export default function AuthCallback() {
   const [error, setError] = useState('');
   const code = typeof params.code === 'string' ? params.code : '';
   const providerError = typeof params.error === 'string' ? params.error : '';
+  const recovery = params.type === 'recovery';
 
   useEffect(() => {
     let active = true;
@@ -17,15 +18,20 @@ export default function AuthCallback() {
     if (providerError) callback.searchParams.set('error', providerError);
     completeOAuthSignIn(callback.toString())
       .then(() => {
-        if (active) router.replace('/');
+        if (active) router.replace(recovery ? '/auth/reset-password' : '/');
       })
       .catch((cause) => {
-        if (active) setError(cause.message || 'Sign-in could not be completed. Please try again.');
+        if (!active) return;
+        if (/sign-in was cancelled/i.test(cause.message || '')) {
+          router.replace('/');
+          return;
+        }
+        setError(cause.message || 'Sign-in could not be completed. Please try again.');
       });
     return () => {
       active = false;
     };
-  }, [code, providerError, router]);
+  }, [code, providerError, recovery, router]);
 
   return (
     <View style={styles.container}>
