@@ -36,8 +36,16 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-app-example
+example
 
 # generated native folders
 /ios
 /android
+
+# AI / editor configuration
+.claude/
+AGENTS.md
+CLAUDE.md
+
+# VS Code settings
+.vscode/
