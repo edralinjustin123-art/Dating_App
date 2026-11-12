@@ -1,56 +1,14 @@
-# Welcome to your Expo app 👋
+# DateMate
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+DateMate is an Expo Router dating application built with JavaScript and React Native. The repository includes its mobile client and a PostgreSQL-backed Express API in [`backend/`](backend/README.md).
 
-## Get started
+## Quick start
 
-1. Install dependencies
+1. Install frontend dependencies from the repository root with `npm install`.
+2. In one terminal, run `cd backend`, `npm install`, `npm run migrate`, then `npm run dev`. Configure `backend/.env` first using [backend/.env.example](backend/.env.example) and your PostgreSQL credentials.
+3. In a second terminal, start Expo from the repository root with `npx expo start`. The root `.env` should set `EXPO_PUBLIC_API_URL=http://localhost:4000/api`; Android emulators need `http://10.0.2.2:4000/api` instead.
+4. Create an account in the app to reach the home screen. The embedded local database option and standard PostgreSQL setup are in [backend setup](backend/README.md#setup).
 
-   ```bash
-   npm install
-   ```
+The API needs SMTP credentials for password reset emails and an S3 compatible object store for profile photos. Google and Apple sign-in additionally require provider credentials and callback URI configuration. Without these secrets, those specific actions return a clear configuration error; the app does not invent successful accounts, matches, or conversations.
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+See [`backend/README.md`](backend/README.md) for PostgreSQL provisioning, migrations, seeding, every REST route, Socket.IO events, security notes, environment variables, and test commands.

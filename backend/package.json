@@ -1,0 +1,45 @@
+{
+  "name": "datemate-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DateMate REST and Socket.IO backend",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "dev:local": "node scripts/dev-local.js",
+    "migrate": "node database/migrate.js",
+    "seed": "node database/seeds/run.js",
+    "test": "node --test",
+    "lint": "eslint --config eslint.config.js . --max-warnings=0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.900.0",
+    "@aws-sdk/s3-request-presigner": "^3.900.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "jose": "^6.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "nodemailer": "^10.5.0",
+    "pg": "^8.16.3",
+    "socket.io": "^4.8.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@electric-sql/pglite": "^0.5.16",
+    "@electric-sql/pglite-socket": "^0.2.13",
+    "eslint": "^9.39.0",
+    "globals": "^16.5.0",
+    "socket.io-client": "^4.8.1",
+    "supertest": "^7.1.4"
+  }
+}

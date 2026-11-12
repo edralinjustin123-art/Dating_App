@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Date_Matee",
+    "name": "DateMate",
     "slug": "Date_Matee",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -26,13 +26,22 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a profile photo to share with your DateMate matches.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#FFF5F6",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
