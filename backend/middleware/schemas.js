@@ -60,9 +60,10 @@ const discoverQuery = pagination.extend({
 const like = z.object({ profileId: id, direction: z.enum(['like', 'pass', 'dislike']) });
 const message = z.object({ conversationId: id, text: z.string().trim().min(1).max(4000) });
 const messagePage = pagination.extend({ before: z.string().datetime().optional() });
+const photoReorder = z.object({ photoIds: z.array(id).max(6) });
 
 module.exports = {
   id, uuidParams, pagination, register, login, refresh, forgotPassword, resetPassword,
   oauthStart, oauthCallback, profileUpdate, preferencesUpdate, discoverQuery, like,
-  message, messagePage,
+  message, messagePage, photoReorder,
 };

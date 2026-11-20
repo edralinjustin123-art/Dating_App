@@ -79,11 +79,11 @@ function createMatchingService({ pool, profileService }) {
     async receivedLikes(userId) {
       const { rows }=await pool.query(
         `SELECT p.user_id AS id,p.name,p.age,p.location,p.bio,di.label AS intention,l.created_at AS "likedAt",
-                ph.storage_key AS "photoKey",
+                ph.photo_url AS "photoKey",
                 COALESCE((SELECT jsonb_agg(i.name ORDER BY i.name) FROM user_interests ui JOIN interests i ON i.id=ui.interest_id WHERE ui.user_id=p.user_id),'[]'::jsonb) AS interests
            FROM likes l JOIN profiles p ON p.user_id=l.actor_id JOIN users u ON u.id=p.user_id
            LEFT JOIN dating_intentions di ON di.id=p.intention_id
-           LEFT JOIN LATERAL (SELECT storage_key FROM profile_photos WHERE user_id=p.user_id ORDER BY is_primary DESC,sort_order LIMIT 1) ph ON true
+           LEFT JOIN LATERAL (SELECT photo_url FROM profile_photos WHERE user_id=p.user_id ORDER BY is_primary DESC,position LIMIT 1) ph ON true
           WHERE l.target_id=$1 AND l.action='like' AND p.discoverable=true AND u.deleted_at IS NULL
             AND NOT EXISTS (SELECT 1 FROM matches m WHERE m.status='active' AND ((m.user_low=$1 AND m.user_high=p.user_id) OR (m.user_high=$1 AND m.user_low=p.user_id)))
             AND NOT EXISTS (SELECT 1 FROM user_blocks b WHERE (b.blocker_id=$1 AND b.blocked_id=p.user_id) OR (b.blocker_id=p.user_id AND b.blocked_id=$1))

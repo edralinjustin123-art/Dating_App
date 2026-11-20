@@ -1,7 +1,7 @@
 const { discoverProfiles } = require('../models/discover.model');
 const { badRequest } = require('../utils/errors');
 
-function createDiscoverService({ pool, profileService, config }) {
+function createDiscoverService({ pool, config }) {
   return {
     async list(viewerId, filters) {
       if (filters.minAge != null && filters.maxAge != null && filters.minAge > filters.maxAge) {
@@ -23,7 +23,7 @@ function createDiscoverService({ pool, profileService, config }) {
           ...publicProfile,
           description: profile.bio,
           distance: distance == null ? null : Math.round(Number(distance) * 10) / 10,
-          photoUrl: photoKey ? await profileService.storageSignedUrl(photoKey) : null,
+          photoUrl: photoKey || null,
         };
       }));
       const nextCursor = profiles.length === filters.limit ? profiles[profiles.length - 1].id : null;

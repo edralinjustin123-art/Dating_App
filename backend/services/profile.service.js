@@ -11,7 +11,7 @@ const intentionAliases = new Map([
 function createProfileService({ pool, storage }) {
   async function serializeProfile(row) {
     if (!row) return null;
-    const photoUrl = row.photoKey ? await storage.signedUrl(row.photoKey) : null;
+    const photoUrl = row.photoKey || null;
     const prompt = row.prompts?.[0] || null;
     return {
       id: row.id, name: row.name, age: row.age, gender: row.gender, pronouns: row.pronouns,
@@ -136,7 +136,7 @@ function createProfileService({ pool, storage }) {
   }
 
   async function addPhoto(userId, { buffer, mimeType }) {
-    const key = await storage.uploadProfilePhoto({ userId, buffer, mimeType });
+    const stored = await storage.uploadProfilePhoto({ userId, buffer, mimeType });
     try {
       const photo = await withTransaction(pool, async (client) => {
         const profile = await client.query('SELECT 1 FROM profiles WHERE user_id=$1 FOR UPDATE', [userId]);
@@ -144,39 +144,61 @@ function createProfileService({ pool, storage }) {
         const count = await client.query('SELECT count(*)::int AS total FROM profile_photos WHERE user_id=$1', [userId]);
         if (count.rows[0].total >= 6) throw badRequest('A profile can have up to 6 photos.');
         const order = count.rows[0].total;
-        await client.query('UPDATE profile_photos SET is_primary=false WHERE user_id=$1 AND is_primary=true', [userId]);
+        if (order === 0) await client.query('UPDATE profile_photos SET is_primary=false WHERE user_id=$1 AND is_primary=true', [userId]);
         const inserted = await client.query(
-          `INSERT INTO profile_photos (user_id,storage_key,sort_order,is_primary)
-           VALUES ($1,$2,$3,$4) RETURNING id, storage_key AS "storageKey", sort_order AS "sortOrder", is_primary AS "isPrimary"`,
-          [userId,key,order,order===0],
+          `INSERT INTO profile_photos (user_id,cloudinary_public_id,photo_url,position,is_primary)
+           VALUES ($1,$2,$3,$4,$5) RETURNING id, photo_url AS "photoUrl", position, is_primary AS "isPrimary"`,
+          [userId,stored.publicId,stored.url,order,order===0],
         );
         return inserted.rows[0];
       });
-      return { id: photo.id, photoUrl: await storage.signedUrl(photo.storageKey), sortOrder: photo.sortOrder, isPrimary: photo.isPrimary };
+      return photo;
     } catch (error) {
-      await storage.deleteObject(key).catch((cleanupError) => console.error('Profile photo cleanup failed:', cleanupError.message));
+      await storage.deleteObject(stored.publicId).catch((cleanupError) => console.error('Profile photo cleanup failed:', cleanupError.message));
       throw error;
     }
   }
 
   async function getPhotos(userId) {
     const rows = await listPhotoRows(pool, userId);
-    return Promise.all(rows.map(async (photo) => ({ ...photo, photoUrl: await storage.signedUrl(photo.storageKey), storageKey: undefined })));
+    return rows.map((photo) => ({ id: photo.id, photoUrl: photo.photoUrl, position: photo.position, isPrimary: photo.isPrimary, createdAt: photo.createdAt }));
   }
 
   async function deletePhoto(userId, photoId) {
     await withTransaction(pool, async (client) => {
-      const result = await client.query('DELETE FROM profile_photos WHERE user_id=$1 AND id=$2 RETURNING storage_key,is_primary', [userId,photoId]);
+      const result = await client.query('DELETE FROM profile_photos WHERE user_id=$1 AND id=$2 RETURNING cloudinary_public_id,is_primary,position', [userId,photoId]);
       if (!result.rows[0]) throw notFound('Profile photo');
-      await client.query('INSERT INTO storage_cleanup_jobs (storage_key) VALUES ($1) ON CONFLICT (storage_key) DO NOTHING', [result.rows[0].storage_key]);
+      await client.query('INSERT INTO storage_cleanup_jobs (storage_key) VALUES ($1) ON CONFLICT (storage_key) DO NOTHING', [result.rows[0].cloudinary_public_id]);
+      await client.query('UPDATE profile_photos SET position=position+10 WHERE user_id=$1 AND position>$2', [userId,result.rows[0].position]);
+      await client.query('UPDATE profile_photos SET position=position-11 WHERE user_id=$1 AND position>=11', [userId]);
       if (result.rows[0].is_primary) {
         await client.query(
           `UPDATE profile_photos SET is_primary=true
-            WHERE id=(SELECT id FROM profile_photos WHERE user_id=$1 ORDER BY sort_order LIMIT 1)`, [userId],
+            WHERE id=(SELECT id FROM profile_photos WHERE user_id=$1 ORDER BY position LIMIT 1)`, [userId],
         );
       }
     });
     return { deleted: true };
+  }
+
+  async function setPrimaryPhoto(userId, photoId) {
+    await withTransaction(pool, async (client) => {
+      const selected = await client.query('SELECT id FROM profile_photos WHERE user_id=$1 AND id=$2 FOR UPDATE', [userId,photoId]);
+      if (!selected.rowCount) throw notFound('Profile photo');
+      await client.query('UPDATE profile_photos SET is_primary=false WHERE user_id=$1 AND is_primary=true', [userId]);
+      await client.query('UPDATE profile_photos SET is_primary=true WHERE user_id=$1 AND id=$2', [userId,photoId]);
+    });
+    return { photos: await getPhotos(userId) };
+  }
+
+  async function reorderPhotos(userId, photoIds) {
+    await withTransaction(pool, async (client) => {
+      const current = await client.query('SELECT id FROM profile_photos WHERE user_id=$1 ORDER BY position FOR UPDATE', [userId]);
+      if (current.rowCount !== photoIds.length || new Set(photoIds).size !== photoIds.length || current.rows.some((row) => !photoIds.includes(row.id))) throw badRequest('Provide every photo ID once to reorder your profile photos.');
+      await client.query('UPDATE profile_photos SET position=position+10 WHERE user_id=$1', [userId]);
+      for (const [position, id] of photoIds.entries()) await client.query('UPDATE profile_photos SET position=$3 WHERE user_id=$1 AND id=$2', [userId,id,position]);
+    });
+    return { photos: await getPhotos(userId) };
   }
 
   async function block(userId, targetId) {
@@ -202,7 +224,7 @@ function createProfileService({ pool, storage }) {
   async function deleteProfile(userId) {
     await withTransaction(pool, async (client) => {
       await client.query(`INSERT INTO storage_cleanup_jobs (storage_key)
-        SELECT storage_key FROM profile_photos WHERE user_id=$1 ON CONFLICT (storage_key) DO NOTHING`, [userId]);
+        SELECT cloudinary_public_id FROM profile_photos WHERE user_id=$1 ON CONFLICT (storage_key) DO NOTHING`, [userId]);
       const ended = await client.query(`UPDATE matches SET status='unmatched',ended_at=now() WHERE status='active' AND (user_low=$1 OR user_high=$1) RETURNING id`, [userId]);
       if (ended.rows.length) await client.query('UPDATE conversations SET archived_at=now() WHERE match_id=ANY($1::uuid[])', [ended.rows.map((row)=>row.id)]);
       await client.query('DELETE FROM likes WHERE actor_id=$1 OR target_id=$1', [userId]);
@@ -223,7 +245,7 @@ function createProfileService({ pool, storage }) {
     return result;
   }
 
-  return { serializeProfile, storageSignedUrl: (key) => storage.signedUrl(key), save, getProfile: async (id, hidden = false) => serializeProfile(await getProfileRow(pool,id,hidden)), getPublicProfile, getUserPreferences: (userId) => getPreferences(pool,userId), savePreferences, addPhoto, getPhotos, deletePhoto, block, unblock, deleteProfile };
+  return { serializeProfile, storageSignedUrl: (url) => url, save, getProfile: async (id, hidden = false) => serializeProfile(await getProfileRow(pool,id,hidden)), getPublicProfile, getUserPreferences: (userId) => getPreferences(pool,userId), savePreferences, addPhoto, getPhotos, deletePhoto, setPrimaryPhoto, reorderPhotos, block, unblock, deleteProfile };
 }
 
 module.exports = { createProfileService };

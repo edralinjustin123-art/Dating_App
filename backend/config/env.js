@@ -21,6 +21,7 @@ const schema = z.object({
   SMTP_HOST: z.string().default(''), SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
   SMTP_SECURE: z.string().default('false'), SMTP_USER: z.string().default(''), SMTP_PASSWORD: z.string().default(''),
   SMTP_FROM: z.string().default('DateMate <no-reply@example.com>'),
+  CLOUDINARY_CLOUD_NAME: z.string().default(''), CLOUDINARY_API_KEY: z.string().default(''), CLOUDINARY_API_SECRET: z.string().default(''),
   S3_REGION: z.string().default('auto'), S3_BUCKET: z.string().default(''), S3_ENDPOINT: z.string().default(''),
   S3_ACCESS_KEY_ID: z.string().default(''), S3_SECRET_ACCESS_KEY: z.string().default(''),
   S3_FORCE_PATH_STYLE: z.string().default('true'), S3_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().min(60).max(604800).default(3600),

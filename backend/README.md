@@ -15,14 +15,14 @@ Express 5 REST API with Socket.IO, PostgreSQL (`pg`), bcrypt password hashing, r
 
 ### Start without installing PostgreSQL
 
-For local UI development, the repository includes a PostgreSQL-compatible embedded database. From `backend/`, run:
+For local UI development, the repository includes a PostgreSQL-compatible embedded database. It requires dependencies already installed from the lockfile; it does not require an internet connection when starting. From `backend/`, run:
 
 ```sh
 npm install
 npm run dev:local
 ```
 
-This creates the schema and interest catalogs automatically, then starts the API on port 4000. The local database persists in `backend/.local-db`; it is ignored by Git. It is intended for development only. In another terminal, start Expo from the repository root with `npx expo start` (the default app API URL is `http://localhost:4000/api`; Android emulators use `http://10.0.2.2:4000/api`). Register an account in the app to reach the home screen.
+This creates the schema and interest catalogs automatically, then starts the API on port 4000. The local database persists in `backend/.local-db`; it is ignored by Git. It is intended for development only. In another terminal, start Expo from the repository root with `npm start`. On a physical device, open Expo Go and scan the QR code. Keep the phone and computer on the same Wi-Fi network and allow Node.js through the computer firewall on the private network. The app detects the Expo development server host and uses that host for the API. On Android emulators it defaults to `http://10.0.2.2:4000/api`; iOS simulators use `http://localhost:4000/api`. The root `.env` can override the address with `EXPO_PUBLIC_API_URL`. Register an account in the app to reach the home screen. No external email or cloud account is needed for password sign-up and login.
 
 ### Use PostgreSQL
 
@@ -63,14 +63,14 @@ Create a root `.env` (Expo public variables are bundled into the app and must ne
 EXPO_PUBLIC_API_URL=http://localhost:4000/api
 ```
 
-Use `http://10.0.2.2:4000/api` on an Android emulator. For a physical device, use the development computer's LAN IP address, allow port 4000 through the local firewall, and add the Expo development origin to `CORS_ORIGINS` if using Expo Web. Use HTTPS and a publicly reachable hostname for deployed builds. Restart Expo after changing the value. API access tokens are held in memory; refresh tokens are stored with Expo SecureStore on iOS/Android. On web, persistence is intentionally disabled because there is no equivalent protected store in this app integration.
+Use `http://10.0.2.2:4000/api` on an Android emulator. For a physical device, leave `EXPO_PUBLIC_API_URL` unset so the client derives the host from Expo's development manifest. Keep the phone and computer on the same Wi-Fi and allow Node.js through the computer firewall on the private network. Add the Expo development origin to `CORS_ORIGINS` if using Expo Web. Use HTTPS and a publicly reachable hostname for deployed builds. Restart Expo after changing this value. API access tokens are held in memory; refresh tokens are stored with Expo SecureStore on iOS/Android. On web, persistence is intentionally disabled because there is no equivalent protected store in this app integration.
 
 ## External credentials
 
 The backend can start with the optional integrations blank, but it responds with an explicit `503` for operations requiring an unconfigured provider:
 
 - **SMTP:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, and a deep link in `PASSWORD_RESET_URL` (for example `datematee://reset-password`). The app has a matching `/reset-password?token=...` route.
-- **Private object storage:** `S3_BUCKET`, `S3_REGION`, and either `S3_ACCESS_KEY_ID` + `S3_SECRET_ACCESS_KEY`, workload identity, or a compatible `S3_ENDPOINT`. Photos are uploaded from the API, stored as private objects, and exposed with expiring signed URLs. Deleted objects are removed by a retrying cleanup worker.
+- **Image storage:** `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`. Uploads are signed on the server, image bytes are stored in Cloudinary, and PostgreSQL stores the secure URL and public ID. Deleted images are removed by a retrying cleanup worker.
 - **Google sign-in:** OAuth client ID/secret and the exact app callback URI in `OAUTH_REDIRECT_URIS`.
 - **Apple sign-in:** Services ID/client ID, team ID, key ID, signing private key, and the same exact callback URI allowlist. Configure provider-side redirect URLs to match the app's `datematee://auth/callback` URI or your production universal/app link.
 
@@ -95,8 +95,10 @@ Successful JSON responses use the named resource property shown below. Errors us
 | POST | `/api/auth/oauth/callback` | No | `{ provider, code, redirectUri, state }`; validates OIDC issuer/audience/nonce and PKCE |
 | GET / PUT / DELETE | `/api/profiles/me` | Yes | Read, create/update `{ name, age, gender, pronouns, location, occupation, bio, intention, interests, prompt(s), latitude, longitude, discoverable }`, or delete account/profile |
 | GET | `/api/profiles/:id` | Yes | Safe public profile; hidden profiles and blocked users are not exposed |
-| GET / POST | `/api/profiles/me/photos` | Yes | List or multipart upload `photo` (JPEG/PNG/WebP, max 5 MiB; max 6 photos) |
-| DELETE | `/api/profiles/me/photos/:photoId` | Yes | Delete a photo and queue object cleanup |
+| GET / POST | `/api/profiles/photos` | Yes | List or multipart upload `photo` (JPEG/PNG/WebP, max 5 MiB; max 6 photos) |
+| PATCH | `/api/profiles/photos/:photoId/primary` | Yes | Set the caller’s primary photo |
+| PATCH | `/api/profiles/photos/reorder` | Yes | Reorder all owned photos with `{ photoIds: [...] }` |
+| DELETE | `/api/profiles/photos/:photoId` | Yes | Delete a photo and queue Cloudinary cleanup |
 | POST / DELETE | `/api/profiles/:id/block` | Yes | Block or unblock; blocking ends active matches and archives conversations |
 | GET | `/api/interests` | Yes | Interest catalog |
 | GET / PUT | `/api/preferences` | Yes | Read or update age range, distance, location/coordinates, intentions, and genders |

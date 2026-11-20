@@ -29,7 +29,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Choose a profile photo to share with your DateMate matches.",
-          "cameraPermission": false,
+          "cameraPermission": "DateMate uses your camera to take a profile photo.",
           "microphonePermission": false
         }
       ],

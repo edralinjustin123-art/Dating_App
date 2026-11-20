@@ -14,6 +14,11 @@ function createProfileRouter({controller,authenticate}){
   router.get('/me/photos',asyncHandler(controller.listPhotos));
   router.post('/me/photos',upload.single('photo'),asyncHandler(controller.uploadPhoto));
   router.delete('/me/photos/:photoId',validate({params:expressParams(['photoId'])}),asyncHandler(controller.deletePhoto));
+  router.get('/photos',asyncHandler(controller.listPhotos));
+  router.post('/photos',upload.single('photo'),asyncHandler(controller.uploadPhoto));
+  router.patch('/photos/reorder',validate({body:schemas.photoReorder}),asyncHandler(controller.reorderPhotos));
+  router.patch('/photos/:photoId/primary',validate({params:expressParams(['photoId'])}),asyncHandler(controller.setPrimaryPhoto));
+  router.delete('/photos/:photoId',validate({params:expressParams(['photoId'])}),asyncHandler(controller.deletePhoto));
   router.post('/:id/block',validate({params:schemas.uuidParams}),asyncHandler(controller.block));
   router.delete('/:id/block',validate({params:schemas.uuidParams}),asyncHandler(controller.unblock));
   router.get('/:id',validate({params:schemas.uuidParams}),asyncHandler(controller.getPublic));

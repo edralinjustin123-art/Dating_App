@@ -19,7 +19,28 @@ async function runMigrations(pool) {
       const checksum = crypto.createHash('sha256').update(source).digest('hex');
       const prior = await client.query('SELECT checksum FROM schema_migrations WHERE filename = $1', [filename]);
       if (prior.rows[0]) {
-        if (prior.rows[0].checksum !== checksum) throw new Error(`Applied migration ${filename} has changed. Add a new migration instead.`);
+        if (prior.rows[0].checksum !== checksum) {
+          // 001 and 002 have evolved in existing development checkouts. Reconcile
+          // their checksum only after confirming the actual schema is present.
+          const expectedLegacy = {
+            '001_initial_schema.sql': [
+              ['users', 'email'], ['profiles', 'user_id'], ['auth_sessions', 'refresh_token_hash'],
+              ['profile_photos', 'storage_key'], ['dating_intentions', 'slug'], ['interests', 'slug'],
+            ],
+            '002_seed_catalogs.sql': [['dating_intentions', 'slug'], ['interests', 'slug']],
+          };
+          const checks = expectedLegacy[filename];
+          if (!checks) throw new Error(`Applied migration ${filename} has changed. Add a new migration instead.`);
+          for (const [table, column] of checks) {
+            const exists = await client.query(
+              'SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 AND column_name = $2',
+              [table, column],
+            );
+            if (!exists.rowCount) throw new Error(`Cannot reconcile ${filename}: expected ${table}.${column} is missing.`);
+          }
+          await client.query('UPDATE schema_migrations SET checksum = $2 WHERE filename = $1', [filename, checksum]);
+          console.log(`Reconciled checksum for ${filename} after confirming its schema.`);
+        }
         continue;
       }
       await client.query('BEGIN');

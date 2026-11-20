@@ -64,11 +64,11 @@ function createMessagingService({ pool, io }) {
 
   return {
     requireAccess: async (conversationId,userId) => requireConversation(pool,conversationId,userId),
-    async conversations(userId, profileService) {
+    async conversations(userId) {
       const rows = await listConversations(pool,userId);
       return Promise.all(rows.map(async (row) => ({
         id: row.id, matchId: row.matchId, userId: row.userId, name: row.name, age: row.age,
-        photoUrl: row.photoKey ? await profileService.storageSignedUrl(row.photoKey) : null,
+        photoUrl: row.photoKey || null,
         lastMessage: row.lastMessageText ? { text: row.lastMessageText, createdAt: row.lastMessageAt, sender: row.lastSenderId === userId ? 'me' : 'mate' } : null,
       })));
     },

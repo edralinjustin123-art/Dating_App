@@ -1,6 +1,24 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '');
+function resolveApiUrl() {
+  const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (configuredUrl) return configuredUrl.replace(/\/$/, '');
+
+  // Expo Go on a physical device must reach the computer running the API via LAN.
+  // Emulator loopback aliases are handled separately because they are not LAN addresses.
+  const hostUri = Constants.expoConfig?.hostUri
+    || Constants.manifest2?.extra?.expoClient?.hostUri
+    || Constants.manifest?.debuggerHost;
+  if (hostUri && !['localhost', '127.0.0.1'].includes(hostUri)) {
+    const host = hostUri.replace(/^https?:\/\//, '').split(':')[0];
+    return `http://${host}:4000/api`;
+  }
+  if (Platform.OS === 'android') return 'http://10.0.2.2:4000/api';
+  return 'http://localhost:4000/api';
+}
+
+const API_URL = resolveApiUrl();
 const REFRESH_KEY = 'datemate.refresh-token';
 let accessToken = null;
 let refreshToken = null;
@@ -100,8 +118,9 @@ async function fetchApi(path, options, retry = true) {
       },
       body: options.body && !isForm ? JSON.stringify(options.body) : options.body,
     });
-  } catch {
-    throw new Error('Could not connect to the DateMate server. Check your connection and try again.');
+  } catch (error) {
+    const detail = error?.message ? ` (${error.message})` : '';
+    throw new Error(`Could not connect to the DateMate server at ${API_URL}. Ensure the API is running and reachable from this device.${detail}`);
   }
   if (response.status === 401 && retry && refreshToken && !path.startsWith('/auth/')) {
     await refreshAccessToken();
@@ -127,10 +146,12 @@ export const api = {
   exchangeOAuth: (provider, code, redirectUri, state) => apiRequest('/auth/oauth/callback', { method: 'POST', body: { provider, code, redirectUri, state } }),
   saveProfile: (body) => apiRequest('/profiles/me', { method: 'PUT', body }),
   getProfile: () => apiRequest('/profiles/me'),
-  getPhotos: () => apiRequest('/profiles/me/photos'),
+  getPhotos: () => apiRequest('/profiles/photos'),
   getProfileById: (profileId) => apiRequest(`/profiles/${encodeURIComponent(profileId)}`),
-  uploadPhoto: (formData) => apiRequest('/profiles/me/photos', { method: 'POST', body: formData }),
-  deletePhoto: (photoId) => apiRequest(`/profiles/me/photos/${encodeURIComponent(photoId)}`, { method: 'DELETE' }),
+  uploadPhoto: (formData) => apiRequest('/profiles/photos', { method: 'POST', body: formData }),
+  deletePhoto: (photoId) => apiRequest(`/profiles/photos/${encodeURIComponent(photoId)}`, { method: 'DELETE' }),
+  setPrimaryPhoto: (photoId) => apiRequest(`/profiles/photos/${encodeURIComponent(photoId)}/primary`, { method: 'PATCH' }),
+  reorderPhotos: (photoIds) => apiRequest('/profiles/photos/reorder', { method: 'PATCH', body: { photoIds } }),
   getDiscover: (filters) => apiRequest(`/discover?${new URLSearchParams(filters).toString()}`),
   swipe: (profileId, direction) => apiRequest('/likes', { method: 'POST', body: { profileId, direction } }),
   undoSwipe: () => apiRequest('/likes/undo', { method: 'POST' }),

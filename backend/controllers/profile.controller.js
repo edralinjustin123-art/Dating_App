@@ -28,6 +28,8 @@ function createProfileController({profileService,authService}){
       return res.status(201).json(photo);
     },
     deletePhoto:async(req,res)=>res.json(await profileService.deletePhoto(req.auth.userId,req.validated.params.photoId)),
+    setPrimaryPhoto:async(req,res)=>res.json(await profileService.setPrimaryPhoto(req.auth.userId,req.validated.params.photoId)),
+    reorderPhotos:async(req,res)=>res.json(await profileService.reorderPhotos(req.auth.userId,req.validated.body.photoIds)),
     block:async(req,res)=>res.json(await profileService.block(req.auth.userId,req.validated.params.id)),
     unblock:async(req,res)=>res.json(await profileService.unblock(req.auth.userId,req.validated.params.id)),
   };

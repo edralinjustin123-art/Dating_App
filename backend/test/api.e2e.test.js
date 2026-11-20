@@ -38,6 +38,7 @@ before(async () => {
     JWT_AUDIENCE: 'datemate-app', ACCESS_TOKEN_TTL: '15m', REFRESH_TOKEN_TTL_DAYS: 30,
     PASSWORD_RESET_TTL_MINUTES: 30, PASSWORD_RESET_URL: '', TRUST_PROXY: 0,
     SMTP_HOST: '', SMTP_PORT: 587, SMTP_SECURE: false, SMTP_USER: '', SMTP_PASSWORD: '', SMTP_FROM: 'DateMate test <test@example.invalid>',
+    CLOUDINARY_CLOUD_NAME: '', CLOUDINARY_API_KEY: '', CLOUDINARY_API_SECRET: '',
     S3_REGION: 'auto', S3_BUCKET: '', S3_ENDPOINT: '', S3_ACCESS_KEY_ID: '', S3_SECRET_ACCESS_KEY: '',
     S3_SIGNED_URL_TTL_SECONDS: 3600, s3ForcePathStyle: true, smtpSecure: false,
     GOOGLE_CLIENT_ID: '', GOOGLE_CLIENT_SECRET: '', APPLE_CLIENT_ID: '', APPLE_TEAM_ID: '', APPLE_KEY_ID: '', APPLE_PRIVATE_KEY: '',
@@ -97,10 +98,23 @@ test('authenticated API covers account, profile, discovery, matching, chat, bloc
   assert.equal(me.body.profile.email, undefined);
   assert.deepEqual(me.body.profile.interests.sort(), ['Coffee', 'Travel']);
   assert.equal(me.body.profile.prompt.answer, 'Sunlight and coffee.');
-  await request(app).get('/api/profiles/me/photos').set(aliceHeaders).expect(200).expect((res) => assert.deepEqual(res.body.photos, []));
+  await request(app).get('/api/profiles/photos').set(aliceHeaders).expect(200).expect((res) => assert.deepEqual(res.body.photos, []));
   await request(app).delete('/api/profiles/me/photos/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa').set(aliceHeaders).expect(404);
   const image = Buffer.from([0xff,0xd8,0xff,0xe0,0,0x10,0x4a,0x46,0x49,0x46,0,1]);
-  await request(app).post('/api/profiles/me/photos').set(aliceHeaders).attach('photo', image, 'profile.jpg').expect(503);
+  let storedPhoto = 0;
+  services.storage.uploadProfilePhoto = async ({ userId: owner }) => ({ publicId: `datemate/profiles/${owner}/${++storedPhoto}`, url: `https://images.example/${storedPhoto}.jpg` });
+  services.storage.deleteObject = async () => {};
+  const photoA = await request(app).post('/api/profiles/photos').set(aliceHeaders).attach('photo', image, 'profile.jpg').expect(201);
+  const photoB = await request(app).post('/api/profiles/photos').set(aliceHeaders).attach('photo', image, 'second.jpg').expect(201);
+  assert.equal(photoA.body.isPrimary, true);
+  assert.equal(photoB.body.isPrimary, false);
+  await request(app).patch(`/api/profiles/photos/${photoB.body.id}/primary`).set(aliceHeaders).expect(200);
+  await request(app).patch('/api/profiles/photos/reorder').set(aliceHeaders).send({ photoIds: [photoB.body.id, photoA.body.id] }).expect(200);
+  const listedPhotos = await request(app).get('/api/profiles/photos').set(aliceHeaders).expect(200);
+  assert.equal(listedPhotos.body.photos[0].id, photoB.body.id);
+  assert.equal(listedPhotos.body.photos[0].isPrimary, true);
+  await request(app).delete(`/api/profiles/photos/${photoA.body.id}`).set(auth(bob.accessToken)).expect(404);
+  await request(app).delete(`/api/profiles/photos/${photoA.body.id}`).set(aliceHeaders).expect(200);
   await request(app).get(`/api/profiles/${carol.userId}`).set(aliceHeaders).expect(200);
 
   await request(app).put('/api/preferences').set(aliceHeaders).send({ minAge: 24, maxAge: 40, maxDistance: 50, intentions: ['long_term'] }).expect(200);
