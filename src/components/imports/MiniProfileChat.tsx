@@ -1,4 +1,3 @@
-
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 type MiniProfileChatProps = {
@@ -36,7 +35,7 @@ export function MiniProfileChat(props: MiniProfileChatProps) {
         </Text>
 
         <Text style={styles.note} numberOfLines={1}>
-          {props.isOnline ? 'Online now' : props.note}
+          {props.isOnline ? 'Online' : 'Offline'}
         </Text>
       </View>
 

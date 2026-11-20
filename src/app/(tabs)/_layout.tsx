@@ -6,9 +6,8 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        headerShown: false, 
 
-        // Navigation bar design
         tabBarActiveTintColor: '#E85D75',
         tabBarInactiveTintColor: '#999999',
 
@@ -22,7 +21,6 @@ export default function TabsLayout() {
           elevation: 8,
         },
 
-        // Text below each icon
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',

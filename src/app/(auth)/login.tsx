@@ -14,11 +14,31 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AuthButton } from '@/components/imports/AuthButton';
 import { AuthInput } from '@/components/imports/AuthInput';
+import { useProfile } from '../../context/ProfileContext';
 
 export default function LoginScreen() {
+  const { login } = useProfile();
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleLogin = () => {
+    if (!username.trim() || !password) {
+      setError('Please enter your username and password.');
+      return;
+    }
+
+    const success = login(username, password);
+
+    if (success) {
+      setError('');
+      router.replace('/(tabs)/home');
+    } else {
+      setError('Incorrect username or password. Please try again.');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -49,6 +69,15 @@ export default function LoginScreen() {
               <Text style={styles.title}>Welcome back!</Text>
               <Text style={styles.description}>
                 Log in to continue your journey.
+              </Text>
+
+              {error ? (
+                <Text style={styles.errorText}>{error}</Text>
+              ) : null}
+
+              <Text style={styles.demoHint}>
+                Demo accounts: user1, user2, or user3.
+                Check the account credentials above.
               </Text>
 
               <View style={styles.fields}>
@@ -101,7 +130,7 @@ export default function LoginScreen() {
               <View style={styles.buttonContainer}>
                 <AuthButton
                   title="Continue"
-                  onPress={() => router.replace('/(tabs)/home')}
+                  onPress={handleLogin}
                 />
               </View>
 
@@ -153,6 +182,21 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 20,
     justifyContent: 'center',
+  },
+
+  errorText: {
+    color: '#D93652',
+    fontSize: 13,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+
+  demoHint: {
+    color: '#999999',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 18,
   },
 
   brandContainer: {
