@@ -25,18 +25,49 @@ async function runMigrations(pool) {
           const expectedLegacy = {
             '001_initial_schema.sql': [
               ['users', 'email'], ['profiles', 'user_id'], ['auth_sessions', 'refresh_token_hash'],
-              ['profile_photos', 'storage_key'], ['dating_intentions', 'slug'], ['interests', 'slug'],
+              ['profile_photos', 'storage_key', 'cloudinary_public_id'],
+              ['dating_intentions', 'slug'], ['interests', 'slug'],
             ],
             '002_seed_catalogs.sql': [['dating_intentions', 'slug'], ['interests', 'slug']],
+            '003_cloudinary_profile_photos.sql': [
+              ['profile_photos', 'cloudinary_public_id'], ['profile_photos', 'position'], ['profile_photos', 'photo_url'],
+            ],
+            '004_cleanup_profile_photo_constraint.sql': [],
           };
           const checks = expectedLegacy[filename];
           if (!checks) throw new Error(`Applied migration ${filename} has changed. Add a new migration instead.`);
-          for (const [table, column] of checks) {
+          for (const [table, column, alternateColumn] of checks) {
             const exists = await client.query(
               'SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 AND column_name = $2',
               [table, column],
             );
+            if (!exists.rowCount && alternateColumn) {
+              const alternate = await client.query(
+                'SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = $1 AND column_name = $2',
+                [table, alternateColumn],
+              );
+              if (alternate.rowCount) continue;
+            }
             if (!exists.rowCount) throw new Error(`Cannot reconcile ${filename}: expected ${table}.${column} is missing.`);
+          }
+          if (filename === '003_cloudinary_profile_photos.sql') {
+            const unique = await client.query(
+              "SELECT 1 FROM pg_constraint WHERE conrelid = 'profile_photos'::regclass AND conname = 'profile_photos_user_position_key' AND contype = 'u'",
+            );
+            const orderIndex = await client.query(
+              "SELECT indexdef FROM pg_indexes WHERE tablename = 'profile_photos' AND indexname = 'profile_photos_user_order_idx'",
+            );
+            if (!unique.rowCount || !orderIndex.rows[0]?.indexdef.includes('position')) {
+              throw new Error(`Cannot reconcile ${filename}: expected profile photo ordering constraints are missing.`);
+            }
+          }
+          if (filename === '004_cleanup_profile_photo_constraint.sql') {
+            const remainingLegacyConstraints = await client.query(
+              "SELECT 1 FROM pg_constraint WHERE conrelid = 'profile_photos'::regclass AND conname IN ('profile_photos_sort_order_key', 'profile_photos_storage_key_key')",
+            );
+            if (remainingLegacyConstraints.rowCount) {
+              throw new Error(`Cannot reconcile ${filename}: legacy profile photo constraints are still present.`);
+            }
           }
           await client.query('UPDATE schema_migrations SET checksum = $2 WHERE filename = $1', [filename, checksum]);
           console.log(`Reconciled checksum for ${filename} after confirming its schema.`);

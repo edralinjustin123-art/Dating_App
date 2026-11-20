@@ -190,3 +190,18 @@ test('authenticated API covers account, profile, discovery, matching, chat, bloc
   const demos = await pool.query('SELECT count(*)::int AS total FROM users WHERE is_demo=true');
   assert.equal(demos.rows[0].total, 3);
 });
+
+test('legacy migration checksums reconcile after the profile photo column was renamed', async () => {
+  await pool.query("UPDATE schema_migrations SET checksum = 'legacy-checksum' WHERE filename IN ('001_initial_schema.sql', '002_seed_catalogs.sql', '003_cloudinary_profile_photos.sql', '004_cleanup_profile_photo_constraint.sql')");
+
+  await runMigrations(pool);
+
+  const photos = await pool.query(
+    "SELECT 1 FROM information_schema.columns WHERE table_name = 'profile_photos' AND column_name = 'cloudinary_public_id'",
+  );
+  assert.equal(photos.rowCount, 1);
+  const checksums = await pool.query(
+    "SELECT count(*)::int AS count FROM schema_migrations WHERE filename IN ('001_initial_schema.sql', '002_seed_catalogs.sql', '003_cloudinary_profile_photos.sql', '004_cleanup_profile_photo_constraint.sql') AND checksum <> 'legacy-checksum'",
+  );
+  assert.equal(checksums.rows[0].count, 4);
+});
