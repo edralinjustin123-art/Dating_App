@@ -1,18 +1,28 @@
 
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 export type ChatMessage = {
   id: string;
   text: string;
-  sender: 'me' | 'mate';
+  sender?: 'me' | 'mate';
+  senderId?: string;
   time: string;
 };
 
 type ChatMessagesProps = {
   messages: ChatMessage[];
+  currentUserId?: string | null;
 };
 
-export function ChatMessages({ messages }: ChatMessagesProps) {
+export function ChatMessages({
+  messages,
+  currentUserId,
+}: ChatMessagesProps) {
   return (
     <ScrollView
       style={styles.container}
@@ -20,7 +30,9 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
       showsVerticalScrollIndicator={false}
     >
       {messages.map((message) => {
-        const isMine = message.sender === 'me';
+        const isMine = message.senderId
+          ? message.senderId === currentUserId
+          : message.sender === 'me';
 
         return (
           <View
